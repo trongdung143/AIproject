@@ -803,7 +803,7 @@ class GameAI:
             for i, j in self.info.items():
                 if not self.info[i][2]:
                     return False
-            self.win.fill((180, 200, 150))
+            self.win.fill((250, 250, 250))
             self.DrawMap()
             self.RenderText()
             self.BotsColor()
@@ -953,7 +953,7 @@ class GameAI:
                             rect.height = 30
 
                             for x in j[0]:
-                                self.win.fill((180, 200, 150))
+                                self.win.fill((250, 250, 250))
                                 pygame.draw.rect(
                                     self.win, self.allPath[i][1], rect, 0, 4
                                 )
@@ -970,7 +970,7 @@ class GameAI:
                                 self.DrawMap()
                                 pygame.time.delay(60)
                                 pygame.display.update()
-                            self.win.fill((180, 200, 150))
+                            self.win.fill((250, 250, 250))
                             self.DrawMap()
                             self.RenderText()
                             self.BotsColor()
@@ -989,7 +989,7 @@ class GameAI:
                                 overlaySurface = pygame.Surface(
                                     self.sizeImage, pygame.SRCALPHA
                                 )
-                                self.win.fill((180, 200, 150))
+                                self.win.fill((250, 250, 250))
                                 self.RenderText()
                                 self.BotsColor()
                                 for x in self.allPath[temp[i][1]][0]:
@@ -1066,7 +1066,7 @@ class GameAI:
                     self.__init__()
                     continue
 
-                self.win.fill((180, 200, 150))
+                self.win.fill((250, 250, 250))
                 self.DrawBot()
                 self.DrawPlayer()
                 self.DrawMap()
@@ -1078,7 +1078,7 @@ class GameAI:
                 self.time += 1 * self.speed[0]
             else:
                 if self.createMap:
-                    self.win.fill((180, 200, 150))
+                    self.win.fill((250, 250, 250))
                     self.DrawRectMap()
                     self.RenderTextCreateMap()
                     self.CheckCreateMap()
