@@ -895,30 +895,25 @@ class GameAI:
         )
 
     def DrawPlayer(self):
-        self.win.blit(
-            self.images[2],
-            (
-                self.player[0] * self.sizeImage[0] + self.dx,
-                self.player[1] * self.sizeImage[1] + self.dy,
-            ),
-        )
-
-    def DrawBot(self):
-        self.win.blit(
-            self.images[0],
-            (
-                self.posEnd[1] * self.sizeImage[0] + self.dx,
-                self.posEnd[0] * self.sizeImage[1] + self.dy + 12,
-            ),
-        )
-        for i, j in self.info.items():
+        if not self.playerFinish:
             self.win.blit(
-                j[3],
+                self.images[2],
                 (
-                    j[0][j[1]][1] * self.sizeImage[0] + self.dx,
-                    j[0][j[1]][0] * self.sizeImage[1] + self.dy,
+                    self.player[0] * self.sizeImage[0] + self.dx,
+                    self.player[1] * self.sizeImage[1] + self.dy,
                 ),
             )
+
+    def DrawBot(self):
+        for i, j in self.info.items():
+            if (j[0][j[1]][0], j[0][j[1]][1]) != tuple(self.posEnd):
+                self.win.blit(
+                    j[3],
+                    (
+                        j[0][j[1]][1] * self.sizeImage[0] + self.dx,
+                        j[0][j[1]][0] * self.sizeImage[1] + self.dy,
+                    ),
+                )
 
     def DrawAllPathBots(self):
         temp = []
