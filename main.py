@@ -169,6 +169,14 @@ class GameAI:
             pygame.transform.scale(pygame.image.load("images/bg.png"), (1320, 800)),
         ]
 
+        self.water = [
+            [
+                pygame.transform.scale(pygame.image.load(f"images/w{i}.png"), (27, 27))
+                for i in range(1, 4)
+            ],
+            0,
+        ]
+
     # Algorithm
     def Dfs(self):
         self.info["dfs"][0].append(tuple(self.posStart))
@@ -184,7 +192,7 @@ class GameAI:
             for d in moves:
                 nx, ny = x + d[0], y + d[1]
                 if 0 <= nx < self.sizeMap[0] and 0 <= ny < self.sizeMap[1]:
-                    if (nx, ny) not in visited and self.map[nx][ny] != 1:
+                    if (nx, ny) not in visited and self.map[nx][ny] == 0:
                         visited.add((nx, ny))
                         self.info["dfs"][0].append((nx, ny))
                         depth.append((nx, ny))
@@ -219,7 +227,7 @@ class GameAI:
                 nx, ny = x + d[0], y + d[1]
 
                 if 0 <= nx < self.sizeMap[0] and 0 <= ny < self.sizeMap[1]:
-                    if (nx, ny) not in visited and self.map[nx][ny] != 1:
+                    if (nx, ny) not in visited and self.map[nx][ny] == 0:
                         visited.add((nx, ny))
                         queue.append((nx, ny))
                         allPath.append((nx, ny))
@@ -463,6 +471,7 @@ class GameAI:
             for i in moves:
                 nx, ny = x + i[0], y + i[1]
                 if nx == self.posEnd[0] and ny == self.posEnd[1]:
+
                     return
 
                 if (
