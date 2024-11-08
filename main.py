@@ -50,6 +50,7 @@ class GameAI:
         self.skipPlayer = pygame.rect.Rect(
             self.sizeImage[0] * self.sizeMap[0] + 320, 147, 0, 0
         )
+        self.endGame = False
         self.player = [5, 5]
         self.textPlayer = "Player"
         self.vec = [0, 0]
@@ -589,9 +590,12 @@ class GameAI:
     def RenderMenu(self):
         self.win.blit(self.images[3], (0, 0))
         for i in range(0, len(self.rectMenu)):
-            self.font.bold = False
-            textRender = self.font.render(self.textMenu[i], True, (0, 0, 0))
+            font = pygame.font.Font(None, 46)
+            textRender = font.render(self.textMenu[i], True, (0, 0, 0))
             size = textRender.get_size()
+            self.rectMenu[i].x = self.win.get_size()[0] / 2 - size[0] / 2
+            self.rectMenu[i].width = size[0]
+            self.rectMenu[i].height = size[1]
             self.win.blit(
                 textRender,
                 (
@@ -609,33 +613,39 @@ class GameAI:
             820,
         )
         pygame.draw.rect(self.win, (0, 0, 0), rect, 5, 10)
-        self.font.bold = False
-        textRender = self.font.render(
-            "Time: " + str(self.time // 60) + "s", True, (0, 0, 0)
-        )
-        self.win.blit(
-            textRender, (rect.centerx - textRender.get_size()[0] // 2, self.dy)
-        )
-        pygame.draw.rect(
-            self.win, (self.activeAllBots[1]), self.activeAllBots[0], 10, 4
-        )
-        textRender = self.font.render("X" + str(self.speed[0]), True, (0, 0, 0))
-        self.win.blit(textRender, (950, 200))
-        self.speed[1].width = textRender.get_size()[0]
-        self.speed[1].height = textRender.get_size()[1]
+        if not self.endGame:
+            self.font.bold = False
+            textRender = self.font.render(
+                "Time: " + str(self.time // 60) + "s", True, (0, 0, 0)
+            )
+            self.win.blit(
+                textRender, (rect.centerx - textRender.get_size()[0] // 2, self.dy)
+            )
+            pygame.draw.rect(
+                self.win, (self.activeAllBots[1]), self.activeAllBots[0], 10, 4
+            )
+            textRender = self.font.render("X" + str(self.speed[0]), True, (0, 0, 0))
+            self.win.blit(textRender, (950, 200))
+            self.speed[1].width = textRender.get_size()[0]
+            self.speed[1].height = textRender.get_size()[1]
+            dy = 0
+            textRender = self.font.render(self.textPlayer, True, (0, 0, 0))
+            self.win.blit(
+                textRender, (self.sizeImage[0] * self.sizeMap[0] + 130, dy + 147)
+            )
+            if not self.playerFinish:
+                self.win.blit(
+                    self.images[2],
+                    (self.sizeImage[0] * self.sizeMap[0] + 270, dy + 145),
+                )
+                textRender = self.font.render("Skip", True, (0, 0, 0))
+                self.skipPlayer.width = textRender.get_size()[0]
+                self.skipPlayer.height = textRender.get_size()[1]
+                self.win.blit(
+                    textRender, (self.sizeImage[0] * self.sizeMap[0] + 320, dy + 147)
+                )
         dy = 0
-        textRender = self.font.render(self.textPlayer, True, (0, 0, 0))
-        self.win.blit(textRender, (self.sizeImage[0] * self.sizeMap[0] + 130, dy + 147))
-        if not self.playerFinish:
-            self.win.blit(
-                self.images[2], (self.sizeImage[0] * self.sizeMap[0] + 270, dy + 145)
-            )
-            textRender = self.font.render("Skip", True, (0, 0, 0))
-            self.skipPlayer.width = textRender.get_size()[0]
-            self.skipPlayer.height = textRender.get_size()[1]
-            self.win.blit(
-                textRender, (self.sizeImage[0] * self.sizeMap[0] + 320, dy + 147)
-            )
+
         for i, j in self.info.items():
             dy += 100
             textRender = self.font.render(self.info[i][7], True, (0, 0, 0))
@@ -704,7 +714,8 @@ class GameAI:
             if self.rectMenu[i].collidepoint(mousePos):
                 self.font.bold = True
                 cursorHand = True
-                textRender = self.font.render(self.textMenu[i], True, (255, 165, 0))
+                font = pygame.font.Font(None, 46)
+                textRender = font.render(self.textMenu[i], True, (255, 165, 0))
                 size = textRender.get_size()
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                 self.win.blit(
@@ -912,6 +923,11 @@ class GameAI:
                 )
 
     def DrawAllPathBots(self):
+        self.win.fill((255, 255, 255))
+        self.DrawMap()
+        self.RenderText()
+        self.BotsColor()
+        pygame.display.update()
         temp = []
         for i, j in self.allPath.items():
             rect = copy.deepcopy(self.info[i][5])
@@ -1038,7 +1054,7 @@ class GameAI:
                                     self.DrawMap()
                                     pygame.display.update()
                                     if temp[i][1] != "bfs":
-                                        pygame.time.delay(20)
+                                        pygame.time.delay(10)
 
             pygame.display.update()
 
@@ -1076,6 +1092,7 @@ class GameAI:
                     continue
 
                 if self.CheckEndGame():
+                    self.endGame = True
                     self.DrawAllPathBots()
                     self.__init__()
                     continue
