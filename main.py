@@ -2,7 +2,7 @@ import pygame
 import random
 import numpy as np
 from collections import deque
-import math, copy
+import copy
 
 
 class GameAI:
@@ -28,7 +28,7 @@ class GameAI:
         self.textCreateMap = [
             "Press and drag the mouse to",
             "select the region",
-            "after selected a region",
+            "After selected a region",
             "Press 1 to set the start position",
             "Press 2 to set the end position",
             "Press 3 to create a wall",
@@ -142,12 +142,12 @@ class GameAI:
             ],
         }
         self.allPath = {
-            "dfs": [[], (95, 87, 78, 150)],
-            "bfs": [[], (174, 174, 255, 150)],
-            "hillclimbing": [[], (70, 94, 86, 150)],
-            "aStar": [[], (16, 102, 114, 150)],
-            "greedy": [[], (255, 105, 180, 150)],
-            "ucs": [[], (58, 58, 58, 150)],
+            "dfs": [[], (95, 87, 78, 130)],
+            "bfs": [[], (174, 174, 255, 130)],
+            "hillclimbing": [[], (70, 94, 86, 130)],
+            "aStar": [[], (16, 102, 114, 130)],
+            "greedy": [[], (255, 105, 180, 130)],
+            "ucs": [[], (58, 58, 58, 130)],
         }
         self.heuristics = {
             "hillclimbing": [],
@@ -159,7 +159,7 @@ class GameAI:
                 (self.sizeImage[0], self.sizeImage[1]),
             ),
             pygame.transform.scale(
-                pygame.image.load("images/10.png"),
+                pygame.image.load("images/wall.png"),
                 (self.sizeImage[0], self.sizeImage[1]),
             ),
             pygame.transform.scale(
@@ -171,15 +171,6 @@ class GameAI:
                 pygame.image.load("images/wall.png"),
                 (self.sizeImage[0], self.sizeImage[1] + 20),
             ),
-        ]
-
-        self.grasss = [
-            pygame.image.load("images/grass1.png"),
-            pygame.image.load("images/grass2.png"),
-            pygame.image.load("images/grass3.png"),
-            pygame.image.load("images/grass4.png"),
-            pygame.image.load("images/grass5.png"),
-            pygame.image.load("images/grass6.png"),
         ]
 
     # Algorithm
@@ -617,7 +608,7 @@ class GameAI:
             - (55 + self.dx + self.sizeImage[0] * self.sizeMap[0]),
             820,
         )
-        pygame.draw.rect(self.win, (255, 165, 0), rect, 5, 10)
+        pygame.draw.rect(self.win, (0, 0, 0), rect, 5, 10)
         self.font.bold = False
         textRender = self.font.render(
             "Time: " + str(self.time // 60) + "s", True, (0, 0, 0)
@@ -649,7 +640,7 @@ class GameAI:
             dy += 100
             textRender = self.font.render(self.info[i][7], True, (0, 0, 0))
             self.win.blit(
-                textRender, (self.sizeImage[0] * self.sizeMap[0] + 130, dy + 147)
+                textRender, (self.sizeImage[0] * self.sizeMap[0] + 150, dy + 148)
             )
             if not self.info[i][2]:
                 pygame.draw.rect(self.win, self.info[i][4], self.info[i][5], 0, 4)
@@ -667,14 +658,14 @@ class GameAI:
             - (55 + self.dx + self.sizeImage[0] * self.sizeMap[0]),
             820,
         )
-        pygame.draw.rect(self.win, (10, 10, 10), rect, 2, 5)
+        pygame.draw.rect(self.win, (0, 0, 0), rect, 5, 10)
         font = pygame.font.Font(None, 28)
         for i in range(0, len(self.textCreateMap)):
             textRender = font.render(self.textCreateMap[i], True, (0, 0, 0))
             if i > 1:
-                self.win.blit(textRender, (880, i * 20 + 170))
+                self.win.blit(textRender, (910, i * 40 + 170))
             else:
-                self.win.blit(textRender, (880, i * 20 + 130))
+                self.win.blit(textRender, (910, i * 20 + 130))
 
     def CheckMouseMenu(self, mousePos, click):
         cursorHand = False
@@ -735,9 +726,13 @@ class GameAI:
             self.playerFinish = True
             return
 
-        if self.map[self.player[1] + self.vec[1]][
-            self.player[0] + self.vec[0]
-        ] == 0 and (self.vec[0] != 0 or self.vec[1] != 0):
+        if (
+            0 <= self.player[1] + self.vec[1] < self.sizeMap[0]
+            and 0 <= self.player[0] + self.vec[0] < self.sizeMap[1]
+            and self.map[self.player[1] + self.vec[1]][self.player[0] + self.vec[0]]
+            == 0
+            and (self.vec[0] != 0 or self.vec[1] != 0)
+        ):
             self.movePlayer += 1
             self.player[0] += self.vec[0]
             self.player[1] += self.vec[1]
@@ -833,33 +828,33 @@ class GameAI:
     def DrawRectMap(self):
         pygame.draw.rect(
             self.win,
-            (10, 10, 10),
+            (0, 0, 0),
             (self.dx - 10, 0, self.sizeMap[0] * self.sizeImage[0] + 20, 820),
-            2,
             5,
+            10,
         )
         for i in range(0, len(self.rectMap)):
             for j in range(0, len(self.rectMap)):
                 if self.rectMap[i][j] in self.mouseThroughRect:
-                    pygame.draw.rect(self.win, (0, 200, 0), self.rectMap[i][j], 16, 5)
+                    pygame.draw.rect(self.win, (50, 205, 50), self.rectMap[i][j], 0, 2)
 
                 elif not self.start and [i, j] == self.posStart:
                     pygame.draw.rect(
-                        self.win, (30, 144, 255), self.rectMap[i][j], 16, 5
+                        self.win, (100, 149, 237), self.rectMap[i][j], 0, 2
                     )
 
                 elif not self.end and [i, j] == self.posEnd:
-                    pygame.draw.rect(self.win, (0, 0, 128), self.rectMap[i][j], 16, 5)
+                    pygame.draw.rect(self.win, (0, 105, 148), self.rectMap[i][j], 0, 2)
 
                 elif self.map[i][j] == 1:
-                    pygame.draw.rect(self.win, (220, 20, 60), self.rectMap[i][j], 16, 5)
+                    pygame.draw.rect(self.win, (178, 34, 34), self.rectMap[i][j], 0, 2)
 
-                pygame.draw.rect(self.win, (0, 0, 0), self.rectMap[i][j], 1, 5)
+                pygame.draw.rect(self.win, (0, 0, 0), self.rectMap[i][j], 1, 2)
 
     def DrawMap(self):
         pygame.draw.rect(
             self.win,
-            (255, 165, 0),
+            (0, 0, 0),
             (self.dx - 10, 0, self.sizeMap[0] * self.sizeImage[0] + 20, 820),
             5,
             10,
@@ -884,7 +879,7 @@ class GameAI:
                 else:
                     pygame.draw.rect(
                         self.win,
-                        (165, 42, 42),
+                        (0, 0, 0),
                         pygame.rect.Rect(
                             j * self.sizeImage[0] + self.dx,
                             i * self.sizeImage[1] + self.dy,
@@ -948,24 +943,45 @@ class GameAI:
                             rect.width = 30
                             rect.height = 30
 
+                            prevX = j[0][0][1] * self.sizeImage[0] + self.dx
+                            prevY = j[0][0][0] * self.sizeImage[1] + self.dy
+
                             for x in j[0]:
-                                self.win.fill((255, 255, 255))
-                                pygame.draw.rect(
-                                    self.win, self.allPath[i][1], rect, 0, 4
-                                )
-                                pygame.draw.rect(self.win, (0, 0, 0), rect, 2, 4)
-                                self.win.blit(
-                                    j[3],
-                                    (
-                                        x[1] * self.sizeImage[0] + self.dx,
-                                        x[0] * self.sizeImage[1] + self.dy,
-                                    ),
-                                )
-                                self.DrawMap()
-                                self.RenderText()
-                                self.BotsColor()
-                                pygame.time.delay(60)
-                                pygame.display.update()
+                                targetX = x[1] * self.sizeImage[0] + self.dx
+                                targetY = x[0] * self.sizeImage[1] + self.dy
+                                currentX, currentY = prevX, prevY
+
+                                while currentX != targetX or currentY != targetY:
+                                    if abs(currentX - targetX) > 1:
+                                        stepX = 2 if abs(currentX - targetX) >= 2 else 1
+                                        currentX += (
+                                            stepX if currentX < targetX else -stepX
+                                        )
+                                    else:
+                                        currentX = targetX
+
+                                    if abs(currentY - targetY) > 1:
+                                        stepY = 2 if abs(currentY - targetY) >= 2 else 1
+                                        currentY += (
+                                            stepY if currentY < targetY else -stepY
+                                        )
+                                    else:
+                                        currentY = targetY
+
+                                    self.win.fill((255, 255, 255))
+                                    pygame.draw.rect(
+                                        self.win, self.allPath[i][1], rect, 0, 4
+                                    )
+                                    pygame.draw.rect(self.win, (0, 0, 0), rect, 2, 4)
+                                    self.win.blit(j[3], (currentX, currentY))
+                                    self.DrawMap()
+                                    self.RenderText()
+                                    self.BotsColor()
+                                    pygame.display.update()
+
+                                prevX = targetX
+                                prevY = targetY
+
                             self.win.fill((255, 255, 255))
                             self.win.blit(
                                 j[3],
@@ -1002,7 +1018,7 @@ class GameAI:
                                             i * 100 + 247,
                                         ),
                                     )
-
+                                    self.BotsColor()
                                     pygame.draw.rect(
                                         overlaySurface,
                                         self.allPath[temp[i][1]][1],
@@ -1010,7 +1026,7 @@ class GameAI:
                                             0, 0, self.sizeImage[0], self.sizeImage[1]
                                         ),
                                         0,
-                                        10,
+                                        2,
                                     )
                                     self.win.blit(
                                         overlaySurface,
@@ -1021,7 +1037,9 @@ class GameAI:
                                     )
                                     self.DrawMap()
                                     pygame.display.update()
-                                    pygame.time.delay(20)
+                                    if temp[i][1] != "bfs":
+                                        pygame.time.delay(20)
+
             pygame.display.update()
 
     ##
