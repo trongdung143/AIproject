@@ -1,15 +1,16 @@
 import pygame
 import random
 import numpy as np
-from collections import deque
 import copy
+import queue
+from queue import PriorityQueue
 
 
 class GameAI:
     def __init__(self):
         pygame.init()
         self.win = pygame.display.set_mode((1300, 820))
-        pygame.display.set_caption("Game AI")
+        pygame.display.set_caption("22119054_LuuTrongDung, . . ._DaoNguyenPhuc")
         self.fps = pygame.time.Clock()
         self.font = pygame.font.Font(None, 36)
 
@@ -43,6 +44,7 @@ class GameAI:
         self.start = False
         self.end = False
         self.map = np.ones((self.sizeMap[0], self.sizeMap[1]), dtype=int)
+        self.graph = {}
         self.sizeImage = [27, 27]
         self.posStart = [5, 5]
         self.posEnd = [26, 19]
@@ -56,6 +58,7 @@ class GameAI:
         self.vec = [0, 0]
         self.playerFinish = False
         self.activeAllBots = [pygame.rect.Rect(870, 200, 20, 20), (255, 0, 0), False]
+        self.pathG = {}
         self.info = {
             "dfs": [
                 [],
@@ -150,10 +153,8 @@ class GameAI:
             "greedy": [[], (255, 105, 180, 130)],
             "ucs": [[], (58, 58, 58, 130)],
         }
-        self.heuristics = {
-            "hillclimbing": [],
-        }
-        self.intersections = {"aStar": [], "greedy": [], "ucs": []}
+
+        self.intersections = {"aStar": [[], [], []], "greedy": [], "ucs": [[], [], []]}
         self.images = [
             pygame.transform.scale(
                 pygame.image.load("images/finish.png"),
@@ -175,274 +176,222 @@ class GameAI:
         ]
 
     # Algorithm
+    def checkPosition(self, x, y, visited):
+        return (
+            0 <= x < self.sizeMap[0]
+            and 0 <= y < self.sizeMap[1]
+            and self.map[x][y] == 0
+            and (x, y) not in visited
+        )
+
+    def Heuristic(self, current):
+        return abs(current[0] - self.posEnd[0]) + abs(current[1] - self.posEnd[1])
+
     def Dfs(self):
         self.info["dfs"][0].append(tuple(self.posStart))
-        depth = [tuple(self.posStart)]
+        stack = [tuple(self.posStart)]
         moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         visited = set()
         visited.add(tuple(self.posStart))
+
         while self.info["dfs"][0][-1] != tuple(self.posEnd):
-            x, y = self.info["dfs"][0][-1]
+            current = self.info["dfs"][0][-1]
             foundMove = False
             random.shuffle(moves)
-            random.shuffle(moves)
-            for d in moves:
-                nx, ny = x + d[0], y + d[1]
-                if 0 <= nx < self.sizeMap[0] and 0 <= ny < self.sizeMap[1]:
-                    if (nx, ny) not in visited and self.map[nx][ny] == 0:
-                        visited.add((nx, ny))
-                        self.info["dfs"][0].append((nx, ny))
-                        depth.append((nx, ny))
-                        foundMove = True
-                        break
+
+            for direction in moves:
+                neighbor = (current[0] + direction[0], current[1] + direction[1])
+                if self.checkPosition(neighbor[0], neighbor[1], visited):
+                    visited.add(neighbor)
+                    self.info["dfs"][0].append(neighbor)
+                    stack.append(neighbor)
+                    foundMove = True
+                    break
 
             if not foundMove:
-                if depth:
-                    depth.pop()
-                if depth:
-                    self.info["dfs"][0].append(depth[-1])
+                if stack:
+                    stack.pop()
+                if stack:
+                    self.info["dfs"][0].append(stack[-1])
                 else:
                     break
 
         self.allPath["dfs"][0] = self.info["dfs"][0]
 
     def Bfs(self):
-        queue = deque([tuple(self.posStart)])
+        openList = queue.Queue()
+        openList.put(tuple(self.posStart))
+
         visited = set()
         visited.add(tuple(self.posStart))
-        parent = {}
-        parent[tuple(self.posStart)] = None
+        parents = {tuple(self.posStart): None}
         moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         allPath = [tuple(self.posStart)]
-        while queue:
-            x, y = queue.popleft()
-            if (x, y) == tuple(self.posEnd):
 
+        while not openList.empty():
+            current = openList.get()
+
+            if current == tuple(self.posEnd):
                 break
-            random.shuffle(moves)
-            for d in moves:
-                nx, ny = x + d[0], y + d[1]
 
-                if 0 <= nx < self.sizeMap[0] and 0 <= ny < self.sizeMap[1]:
-                    if (nx, ny) not in visited and self.map[nx][ny] == 0:
-                        visited.add((nx, ny))
-                        queue.append((nx, ny))
-                        allPath.append((nx, ny))
-                        parent[(nx, ny)] = (x, y)
+            random.shuffle(moves)
+            for direction in moves:
+                neighbor = (current[0] + direction[0], current[1] + direction[1])
+                if self.checkPosition(neighbor[0], neighbor[1], visited):
+                    visited.add(neighbor)
+                    openList.put(neighbor)
+                    allPath.append(neighbor)
+                    parents[neighbor] = current
 
         current = tuple(self.posEnd)
         allPath.append(tuple(self.posEnd))
         self.allPath["bfs"][0] = allPath
+
         while current:
             self.info["bfs"][0].append(current)
             try:
-                current = parent[current]
+                current = parents[current]
             except:
                 return False
         self.info["bfs"][0].reverse()
         return True
 
-    def Heuristic(self, current):
-        return abs(current[0] - self.posEnd[0]) + abs(current[1] - self.posEnd[1])
+    def AStar(self):
+        openList = PriorityQueue()
+        openList.put((0, tuple(self.posStart)))
+        visited = set()
+        gnList = {tuple(self.posStart): 0}
+        fnList = {tuple(self.posStart): self.Heuristic(self.posStart)}
+        parents = {tuple(self.posStart): None}
+        self.allPath["aStar"][0] = [tuple(self.posStart)]
+        moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
-    def FindIntersection(self, current, visited, mode):
-        moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
-        temp = []
-        tempVisited = (
-            copy.deepcopy(visited) if mode in ["aStar", "greedy", "ucs"] else None
-        )
+        while not openList.empty():
+            _, current = openList.get()
+            visited.add(current)
+            if current == tuple(self.posEnd):
+                path = []
+                while current is not None:
+                    path.append(current)
+                    current = parents[current]
+                self.info["aStar"][0] = path[::-1]
+                return
 
-        for d in moves:
-            x, y = current[0] + d[0], current[1] + d[1]
-            if (
-                0 <= x < self.sizeMap[0]
-                and 0 <= y < self.sizeMap[1]
-                and self.map[x][y] == 0
-            ):
-                if tempVisited is None and (x, y) not in visited:
-                    temp.append([x, y])
-                    visited.add((x, y))
-                elif tempVisited is not None and (x, y) not in tempVisited:
-                    temp.append([x, y])
-                    tempVisited.add((x, y))
+            for direction in moves:
+                neighbor = (current[0] + direction[0], current[1] + direction[1])
 
-        intersection = None
-        for i in temp:
-            path = [i]
-            count = None
-            while count != 0:
-                x, y = path[-1]
-                count = 0
-                nextMove = None
+                if (
+                    0 <= neighbor[0] < self.sizeMap[0]
+                    and 0 <= neighbor[1] < self.sizeMap[1]
+                    and self.map[neighbor[0]][neighbor[1]] == 0
+                ):
+                    nextGn = gnList[current] + 1
 
-                for d in moves:
-                    nx, ny = x + d[0], y + d[1]
-                    if (
-                        0 <= nx < self.sizeMap[0]
-                        and 0 <= ny < self.sizeMap[1]
-                        and self.map[nx][ny] == 0
-                    ):
-                        if tempVisited is None and (nx, ny) not in visited:
-                            if [nx, ny] == self.posEnd:
-                                return [[nx, ny], 0, path[:]]
-                            count += 1
-                            nextMove = [nx, ny]
-
-                        elif tempVisited is not None and (nx, ny) not in tempVisited:
-                            if [nx, ny] == self.posEnd:
-                                return [[nx, ny], 0, path[:]]
-                            count += 1
-                            nextMove = [nx, ny]
-
-                if count >= 2:
-                    heuristic = self.Heuristic([x, y])
-                    cost = None
-                    if mode == "aStar":
-                        cost = heuristic + len(path)
-                    elif mode == "ucs":
-                        cost = len(path)
-                    else:
-                        cost = heuristic
-
-                    if intersection is None or cost < intersection[1]:
-                        intersection = [[x, y], cost, path[:]]
-
-                    for p in path:
-                        self.allPath[mode][0].append(tuple(p))
-                    break
-                elif count == 1:
-                    path.append(nextMove)
-                    if tempVisited is None:
-                        visited.add(tuple(nextMove))
-                    else:
-                        tempVisited.add(tuple(nextMove))
-
-        return intersection
+                    if neighbor not in gnList or nextGn < gnList[neighbor]:
+                        gnList[neighbor] = nextGn
+                        fnList[neighbor] = nextGn + self.Heuristic(neighbor)
+                        parents[neighbor] = current
+                        openList.put((fnList[neighbor], neighbor))
+                        self.allPath["aStar"][0].append(neighbor)
 
     def Hillclimbing(self):
-        self.heuristics["hillclimbing"].append(self.Heuristic(self.posStart))
-        visited = set()
-        visited.add(tuple(self.posStart))
-        current = self.posStart
-        self.info["hillclimbing"][0].append(tuple(current))
-        self.allPath["hillclimbing"][0].append((current))
-        while True:
-            a = self.FindIntersection(current, visited, "hillclimbing")
-            if a is None or a[1] > self.heuristics["hillclimbing"][-1]:
-                return
-            elif a[1] == 0:
-                for i in a[2]:
-                    self.info["hillclimbing"][0].append(tuple(i))
-                    self.allPath["hillclimbing"][0].append(tuple(i))
+        current = tuple(self.posStart)
+        path = [current]
+        self.allPath["hillclimbing"][0] = [tuple(self.posStart)]
+        while current != tuple(self.posEnd):
+            neighbors = []
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                neighbor = (current[0] + dx, current[1] + dy)
+                if (
+                    0 <= neighbor[0] < self.sizeMap[0]
+                    and 0 <= neighbor[1] < self.sizeMap[1]
+                    and self.map[neighbor[0]][neighbor[1]] == 0
+                ):
+                    neighbors.append(neighbor)
+                    self.allPath["hillclimbing"][0].append(neighbor)
 
-                self.info["hillclimbing"][0].append(tuple(self.posEnd))
-                self.allPath["hillclimbing"][0].append(tuple(self.posEnd))
-                return
-            current = a[0]
-            self.heuristics["hillclimbing"].append(a[1])
-            for i in a[2]:
-                self.info["hillclimbing"][0].append(tuple(i))
-                self.allPath["hillclimbing"][0].append((i))
-            visited.add(tuple(current))
+            if not neighbors:
+                break
 
-    def AStar(self):
-        visited = set()
-        visited.add(tuple(self.posStart))
-        current = self.posStart
-        self.info["aStar"][0].append(tuple(current))
-        self.allPath["aStar"][0].append(tuple(current))
-        self.intersections["aStar"].append(tuple(current))
-        while True:
-            a = self.FindIntersection(current, visited, "aStar")
-            if a is None:
-                while self.intersections["aStar"][-1] != self.info["aStar"][0][-1]:
-                    self.allPath["aStar"][0].append(self.info["aStar"][0].pop())
+            for i in neighbors:
+                if self.Heuristic(current) > self.Heuristic(i):
+                    current = i
 
-                current = self.info["aStar"][0][-1]
-                self.allPath["aStar"][0].append(tuple(current))
-                self.intersections["aStar"].pop()
-                continue
-            elif a[1] == 0:
-                for i in a[2]:
-                    self.info["aStar"][0].append(tuple(i))
-                    self.allPath["aStar"][0].append(tuple(i))
+            if current in path:
+                break
+            path.append(current)
 
-                self.info["aStar"][0].append(tuple(self.posEnd))
-                self.allPath["aStar"][0].append(tuple(self.posEnd))
-                return
-
-            self.intersections["aStar"].append(tuple(a[0]))
-            current = a[0]
-            for i in a[2]:
-                self.info["aStar"][0].append(tuple(i))
-                self.allPath["aStar"][0].append(tuple(i))
-                visited.add(tuple(i))
+        self.info["hillclimbing"][0] = path
 
     def Greedy(self):
+        openList = PriorityQueue()
         visited = set()
+        openList.put((self.Heuristic(self.posStart), tuple(self.posStart)))
         visited.add(tuple(self.posStart))
-        current = self.posStart
-        self.info["greedy"][0].append(tuple(current))
-        self.allPath["greedy"][0].append(tuple(current))
-        self.intersections["greedy"].append(tuple(current))
-        while True:
-            a = self.FindIntersection(current, visited, "greedy")
-            if a is None:
-                while self.intersections["greedy"][-1] != self.info["greedy"][0][-1]:
-                    self.allPath["greedy"][0].append(self.info["greedy"][0].pop())
+        parents = {tuple(self.posStart): None}
+        self.allPath["greedy"][0] = [tuple(self.posStart)]
+        moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
-                current = self.info["greedy"][0][-1]
-                self.allPath["greedy"][0].append(tuple(current))
-                self.intersections["greedy"].pop()
-                continue
-            elif a[1] == 0:
-                for i in a[2]:
-                    self.info["greedy"][0].append(tuple(i))
-                    self.allPath["greedy"][0].append(tuple(i))
+        while not openList.empty():
+            _, current = openList.get()
 
-                self.info["greedy"][0].append(tuple(self.posEnd))
-                self.allPath["greedy"][0].append(tuple(self.posEnd))
+            if current == tuple(self.posEnd):
+                path = []
+                while current is not None:
+                    path.append(current)
+                    current = parents[current]
+                self.info["greedy"][0] = path[::-1]
                 return
 
-            self.intersections["greedy"].append(tuple(a[0]))
-            current = a[0]
-            for i in a[2]:
-                self.info["greedy"][0].append(tuple(i))
-                self.allPath["greedy"][0].append(tuple(i))
-                visited.add(tuple(i))
+            for direction in moves:
+                neighbor = (current[0] + direction[0], current[1] + direction[1])
+
+                if (
+                    0 <= neighbor[0] < self.sizeMap[0]
+                    and 0 <= neighbor[1] < self.sizeMap[1]
+                    and self.map[neighbor[0]][neighbor[1]] == 0
+                ):
+
+                    if neighbor not in visited:
+                        parents[neighbor] = current
+                        openList.put((self.Heuristic(neighbor), neighbor))
+                        self.allPath["greedy"][0].append(neighbor)
+                        visited.add(neighbor)
 
     def Ucs(self):
-        visited = set()
-        visited.add(tuple(self.posStart))
-        current = self.posStart
-        self.info["ucs"][0].append(tuple(current))
-        self.allPath["ucs"][0].append(tuple(current))
-        self.intersections["ucs"].append(tuple(current))
-        while True:
-            a = self.FindIntersection(current, visited, "ucs")
-            if a is None:
-                while self.intersections["ucs"][-1] != self.info["ucs"][0][-1]:
-                    self.allPath["ucs"][0].append(self.info["ucs"][0].pop())
+        openList = PriorityQueue()
+        openList.put((0, tuple(self.posStart)))
 
-                current = self.info["ucs"][0][-1]
-                self.allPath["ucs"][0].append(tuple(current))
-                self.intersections["ucs"].pop()
-                continue
-            elif a[1] == 0:
-                for i in a[2]:
-                    self.info["ucs"][0].append(tuple(i))
-                    self.allPath["ucs"][0].append(tuple(i))
+        gnList = {tuple(self.posStart): 0}
+        parents = {tuple(self.posStart): None}
 
-                self.info["ucs"][0].append(tuple(self.posEnd))
-                self.allPath["ucs"][0].append(tuple(self.posEnd))
+        moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        self.allPath["ucs"][0] = [tuple(self.posStart)]
+        while not openList.empty():
+            cost, current = openList.get()
+
+            if current == tuple(self.posEnd):
+                path = []
+                while current is not None:
+                    path.append(current)
+                    current = parents[current]
+                self.info["ucs"][0] = path[::-1]
                 return
 
-            self.intersections["ucs"].append(tuple(a[0]))
-            current = a[0]
-            for i in a[2]:
-                self.info["ucs"][0].append(tuple(i))
-                self.allPath["ucs"][0].append(tuple(i))
-                visited.add(tuple(i))
+            for direction in moves:
+                neighbor = (current[0] + direction[0], current[1] + direction[1])
+
+                if (
+                    0 <= neighbor[0] < self.sizeMap[0]
+                    and 0 <= neighbor[1] < self.sizeMap[1]
+                    and self.map[neighbor[0]][neighbor[1]] == 0
+                ):
+                    nextGn = cost + 1
+                    if neighbor not in gnList or nextGn < gnList[neighbor]:
+                        gnList[neighbor] = nextGn
+                        parents[neighbor] = current
+                        openList.put((nextGn, neighbor))
+                        self.allPath["ucs"][0].append(neighbor)
 
     ## Stactic Display
     def CreateMap(self):
@@ -1011,6 +960,7 @@ class GameAI:
                             self.BotsColor()
                             break
                     else:
+                        t = None
                         for i in range(0, len(temp)):
                             if temp[i][0].collidepoint(mousePos):
                                 overlaySurface = pygame.Surface(
@@ -1019,8 +969,8 @@ class GameAI:
                                 self.win.fill((255, 255, 255))
                                 self.RenderText()
                                 self.BotsColor()
+                                t = temp[i][1]
                                 for x in self.allPath[temp[i][1]][0]:
-
                                     pygame.draw.rect(
                                         self.win, (0, 0, 0), temp[i][0], 0, 10
                                     )
@@ -1053,8 +1003,22 @@ class GameAI:
                                     )
                                     self.DrawMap()
                                     pygame.display.update()
-                                    if temp[i][1] != "bfs":
-                                        pygame.time.delay(10)
+                                    pygame.time.delay(1)
+                                for x in self.info[t][0]:
+                                    pygame.draw.rect(
+                                        self.win,
+                                        (255, 0, 0),
+                                        pygame.rect.Rect(
+                                            x[1] * self.sizeImage[0] + self.dx,
+                                            x[0] * self.sizeImage[1] + self.dy,
+                                            self.sizeImage[0],
+                                            self.sizeImage[1],
+                                        ),
+                                        0,
+                                        2,
+                                    )
+                                    self.DrawMap()
+                                    pygame.display.update()
 
             pygame.display.update()
 
