@@ -155,7 +155,7 @@ class GameAI:
                 (255, 0, 0),
                 pygame.rect.Rect(870, 7 * 80 + 170, 20, 20),
                 False,
-                "beam",
+                "Beam",
                 0,
             ],
         }
@@ -407,7 +407,7 @@ class GameAI:
 
         while not openList.empty():
             beam = []
-            for _ in range(1):
+            for _ in range(3):
                 if openList.empty():
                     break
                 _, current = openList.get()
@@ -1044,7 +1044,10 @@ class GameAI:
                                     )
                                     self.DrawMap()
                                     pygame.display.update()
-                                    pygame.time.delay(10)
+                                    if temp[i][1] in ["aStar", "ucs", "greedy"]:
+                                        pygame.time.delay(20)
+                                        continue
+                                    pygame.time.delay(5)
                                 for x in self.info[t][0]:
                                     pygame.draw.rect(
                                         self.win,
