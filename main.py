@@ -46,8 +46,8 @@ class GameAI:
         self.map = np.ones((self.sizeMap[0], self.sizeMap[1]), dtype=int)
         self.graph = {}
         self.sizeImage = [27, 27]
-        self.posStart = [5, 5]
-        self.posEnd = [26, 19]
+        self.posStart = (5, 5)
+        self.posEnd = (26, 19)
         self.movePlayer = 0
         self.skipPlayer = pygame.rect.Rect(
             self.sizeImage[0] * self.sizeMap[0] + 320, 147, 0, 0
@@ -190,7 +190,7 @@ class GameAI:
             ),
         ]
 
-    # Algorithm
+    # Algorithms
     def checkPosition(self, current, visited=None):
         if visited is None:
             visited = set()
@@ -201,17 +201,25 @@ class GameAI:
             and current not in visited
         )
 
+    def Herwinning(self, current, parents):
+        path = []
+        while current is not None:
+            path.append(current)
+            current = parents[current]
+        return path[::-1]
+
     def Heuristic(self, current):
         return abs(current[0] - self.posEnd[0]) + abs(current[1] - self.posEnd[1])
 
     def Dfs(self):
-        self.info["dfs"][0].append(tuple(self.posStart))
-        stack = [tuple(self.posStart)]
+        self.info["dfs"][0].append(self.posStart)
+        self.allPath["dfs"][0].append((self.posStart, 0))
+        stack = [self.posStart]
         moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
         visited = set()
-        visited.add(tuple(self.posStart))
-
-        while self.info["dfs"][0][-1] != tuple(self.posEnd):
+        visited.add(self.posStart)
+        count = 1
+        while self.info["dfs"][0][-1] != self.posEnd:
             current = self.info["dfs"][0][-1]
             foundMove = False
             random.shuffle(moves)
@@ -221,8 +229,10 @@ class GameAI:
                 if self.checkPosition(neighbor, visited):
                     visited.add(neighbor)
                     self.info["dfs"][0].append(neighbor)
+                    self.allPath["dfs"][0].append((neighbor, count))
                     stack.append(neighbor)
                     foundMove = True
+                    count += 1
                     break
 
             if not foundMove:
@@ -230,25 +240,25 @@ class GameAI:
                     stack.pop()
                 if stack:
                     self.info["dfs"][0].append(stack[-1])
+                    self.allPath["dfs"][0].append((stack[-1], count))
+                    count += 1
                 else:
                     break
 
-        self.allPath["dfs"][0] = self.info["dfs"][0]
-
     def Bfs(self):
         openList = queue.Queue()
-        openList.put(tuple(self.posStart))
+        openList.put(self.posStart)
 
         visited = set()
-        visited.add(tuple(self.posStart))
-        parents = {tuple(self.posStart): None}
+        visited.add(self.posStart)
+        parents = {self.posStart: None}
         moves = [(0, -1), (-1, 0), (0, 1), (1, 0)]
-        allPath = [tuple(self.posStart)]
-
+        count = 1
+        self.allPath["bfs"][0] = [(self.posStart, 0)]
         while not openList.empty():
             current = openList.get()
 
-            if current == tuple(self.posEnd):
+            if current == self.posEnd:
                 break
 
             random.shuffle(moves)
@@ -257,13 +267,12 @@ class GameAI:
                 if self.checkPosition(neighbor, visited):
                     visited.add(neighbor)
                     openList.put(neighbor)
-                    allPath.append(neighbor)
+                    self.allPath["bfs"][0].append((neighbor, count))
                     parents[neighbor] = current
+                    count += 1
 
-        current = tuple(self.posEnd)
-        allPath.append(tuple(self.posEnd))
-        self.allPath["bfs"][0] = allPath
-
+        current = self.posEnd
+        self.allPath["bfs"][0].append((self.posEnd, count))
         while current:
             self.info["bfs"][0].append(current)
             try:
@@ -275,23 +284,21 @@ class GameAI:
 
     def AStar(self):
         openList = PriorityQueue()
-        openList.put((0, tuple(self.posStart)))
+        openList.put((0, self.posStart))
         visited = set()
-        gnList = {tuple(self.posStart): 0}
-        fnList = {tuple(self.posStart): self.Heuristic(self.posStart)}
-        parents = {tuple(self.posStart): None}
-        self.allPath["aStar"][0] = [tuple(self.posStart)]
+        gnList = {self.posStart: 0}
+        fnList = {self.posStart: self.Heuristic(self.posStart)}
+        parents = {self.posStart: None}
+        count = 1
         moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
         while not openList.empty():
             _, current = openList.get()
             visited.add(current)
-            if current == tuple(self.posEnd):
-                path = []
-                while current is not None:
-                    path.append(current)
-                    current = parents[current]
-                self.info["aStar"][0] = path[::-1]
+            self.allPath["aStar"][0].append((current, count))
+            count += 1
+            if current == self.posEnd:
+                self.info["aStar"][0] = self.Herwinning(current, parents)
                 return
 
             for direction in moves:
@@ -305,20 +312,18 @@ class GameAI:
                         fnList[neighbor] = nextGn + self.Heuristic(neighbor)
                         parents[neighbor] = current
                         openList.put((fnList[neighbor], neighbor))
-                        self.allPath["aStar"][0].append(neighbor)
 
     def Hillclimbing(self):
-        current = tuple(self.posStart)
+        current = self.posStart
         path = [current]
-        self.allPath["hillclimbing"][0] = [tuple(self.posStart)]
+        count = 1
         moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        while current != tuple(self.posEnd):
+        while current != self.posEnd:
             neighbors = []
             for direction in moves:
                 neighbor = (current[0] + direction[0], current[1] + direction[1])
                 if self.checkPosition(neighbor):
                     neighbors.append(neighbor)
-                    self.allPath["hillclimbing"][0].append(neighbor)
 
             if not neighbors:
                 break
@@ -330,27 +335,27 @@ class GameAI:
             if current in path:
                 break
             path.append(current)
+            self.allPath["hillclimbing"][0].append((current, count))
+            count += 1
 
         self.info["hillclimbing"][0] = path
 
     def Greedy(self):
         openList = PriorityQueue()
         visited = set()
-        openList.put((self.Heuristic(self.posStart), tuple(self.posStart)))
-        visited.add(tuple(self.posStart))
-        parents = {tuple(self.posStart): None}
-        self.allPath["greedy"][0] = [tuple(self.posStart)]
+        openList.put((self.Heuristic(self.posStart), self.posStart))
+        visited.add(self.posStart)
+        parents = {self.posStart: None}
+
+        count = 1
         moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
         while not openList.empty():
             _, current = openList.get()
-
-            if current == tuple(self.posEnd):
-                path = []
-                while current is not None:
-                    path.append(current)
-                    current = parents[current]
-                self.info["greedy"][0] = path[::-1]
+            self.allPath["greedy"][0].append((current, count))
+            count += 1
+            if current == self.posEnd:
+                self.info["greedy"][0] = self.Herwinning(current, parents)
                 return
 
             for direction in moves:
@@ -361,27 +366,24 @@ class GameAI:
                     if neighbor not in visited:
                         parents[neighbor] = current
                         openList.put((self.Heuristic(neighbor), neighbor))
-                        self.allPath["greedy"][0].append(neighbor)
                         visited.add(neighbor)
 
     def Ucs(self):
         openList = PriorityQueue()
-        openList.put((0, tuple(self.posStart)))
+        openList.put((0, self.posStart))
 
-        gnList = {tuple(self.posStart): 0}
-        parents = {tuple(self.posStart): None}
+        gnList = {self.posStart: 0}
+        parents = {self.posStart: None}
 
         moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        self.allPath["ucs"][0] = [tuple(self.posStart)]
+
+        count = 1
         while not openList.empty():
             cost, current = openList.get()
-
-            if current == tuple(self.posEnd):
-                path = []
-                while current is not None:
-                    path.append(current)
-                    current = parents[current]
-                self.info["ucs"][0] = path[::-1]
+            self.allPath["ucs"][0].append((current, count))
+            count += 1
+            if current == self.posEnd:
+                self.info["ucs"][0] = self.Herwinning(current, parents)
                 return
 
             for direction in moves:
@@ -393,44 +395,44 @@ class GameAI:
                         gnList[neighbor] = nextGn
                         parents[neighbor] = current
                         openList.put((nextGn, neighbor))
-                        self.allPath["ucs"][0].append(neighbor)
 
     def Beam(self):
         openList = PriorityQueue()
-        openList.put((self.Heuristic(self.posStart), tuple(self.posStart)))
+        openList.put((self.Heuristic(self.posStart), self.posStart))
 
         visited = set()
-        visited.add(tuple(self.posStart))
-        parents = {tuple(self.posStart): None}
-        self.allPath["beam"][0] = [tuple(self.posStart)]
+        visited.add(self.posStart)
+        parents = {self.posStart: None}
+        count = 1
         moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
         while not openList.empty():
-            beam = []
+
+            currentBeam = []
             for _ in range(3):
                 if openList.empty():
                     break
                 _, current = openList.get()
-                if current == tuple(self.posEnd):
-                    path = []
-                    while current is not None:
-                        path.append(current)
-                        current = parents.get(current)
-                    self.info["beam"][0] = path[::-1]
+                currentBeam.append(current)
+                self.allPath["beam"][0].append((current, count))
+                count += 1
+
+                if current == self.posEnd:
+                    self.info["beam"][0] = self.Herwinning(current, parents)
                     return
 
+            neighbors = []
+            for state in currentBeam:
                 for direction in moves:
-                    neighbor = (current[0] + direction[0], current[1] + direction[1])
-
+                    neighbor = (state[0] + direction[0], state[1] + direction[1])
                     if self.checkPosition(neighbor) and neighbor not in visited:
                         visited.add(neighbor)
-                        parents[neighbor] = current
-                        openList.put((self.Heuristic(neighbor), neighbor))
-                        beam.append(neighbor)
-                        self.allPath["beam"][0].append(neighbor)
+                        parents[neighbor] = state
+                        neighbors.append((self.Heuristic(neighbor), neighbor))
 
-            for position in beam:
-                openList.put((self.Heuristic(position), position))
+            neighbors.sort()
+            for heuristic, neighbor in neighbors[:3]:
+                openList.put((heuristic, neighbor))
 
     ## Stactic Display
     def CreateMap(self):
@@ -530,8 +532,7 @@ class GameAI:
                         for j in range(0, len(self.rectMap)):
                             if self.rectMap[i][j] == self.mouseThroughRect[0]:
                                 self.map[self.posStart[0]][self.posStart[1]] = 0
-                                self.posStart[0] = i
-                                self.posStart[1] = j
+                                self.posStart = (i, j)
                                 self.player[0] = j
                                 self.player[1] = i
                                 self.map[self.posStart[0]][self.posStart[1]] = 0
@@ -548,8 +549,7 @@ class GameAI:
                         for j in range(0, len(self.rectMap)):
                             if self.rectMap[i][j] == self.mouseThroughRect[0]:
                                 self.map[self.posEnd[0]][self.posEnd[1]] = 0
-                                self.posEnd[0] = i
-                                self.posEnd[1] = j
+                                self.posEnd = (i, j)
                                 self.map[self.posEnd[0]][self.posEnd[1]] = 0
                                 self.end = False
                                 self.mouseThroughRect.clear()
@@ -749,7 +749,7 @@ class GameAI:
     def CheckWinBot(self):
         for i, j in self.info.items():
             if self.info[i][1] == len(self.info[i][0]) - 1 and not self.info[i][2]:
-                if self.info[i][0][-1] == tuple(self.posEnd):
+                if self.info[i][0][-1] == self.posEnd:
                     self.info[i][7] += " YES STEP: " + str(len(self.info[i][0]) - 1)
                     self.info[i][2] = True
                 else:
@@ -839,12 +839,12 @@ class GameAI:
                 if self.rectMap[i][j] in self.mouseThroughRect:
                     pygame.draw.rect(self.win, (50, 205, 50), self.rectMap[i][j], 0, 2)
 
-                elif not self.start and [i, j] == self.posStart:
+                elif not self.start and (i, j) == self.posStart:
                     pygame.draw.rect(
                         self.win, (100, 149, 237), self.rectMap[i][j], 0, 2
                     )
 
-                elif not self.end and [i, j] == self.posEnd:
+                elif not self.end and (i, j) == self.posEnd:
                     pygame.draw.rect(self.win, (0, 105, 148), self.rectMap[i][j], 0, 2)
 
                 elif self.map[i][j] == 1:
@@ -903,7 +903,7 @@ class GameAI:
 
     def DrawBot(self):
         for i, j in self.info.items():
-            if (j[0][j[1]][0], j[0][j[1]][1]) != tuple(self.posEnd):
+            if (j[0][j[1]][0], j[0][j[1]][1]) != self.posEnd:
                 self.win.blit(
                     j[3],
                     (
@@ -999,9 +999,23 @@ class GameAI:
                             self.DrawMap()
                             self.RenderText()
                             self.BotsColor()
+                            for x in j[0]:
+                                pygame.draw.rect(
+                                    self.win,
+                                    self.allPath[i][1],
+                                    pygame.rect.Rect(
+                                        x[1] * self.sizeImage[0] + self.dx,
+                                        x[0] * self.sizeImage[1] + self.dy,
+                                        self.sizeImage[0],
+                                        self.sizeImage[1],
+                                    ),
+                                    0,
+                                    2,
+                                )
+                                self.DrawMap()
+                                pygame.display.update()
                             break
                     else:
-                        t = None
                         for i in range(0, len(temp)):
                             if temp[i][0].collidepoint(mousePos):
                                 overlaySurface = pygame.Surface(
@@ -1010,7 +1024,6 @@ class GameAI:
                                 self.win.fill((255, 255, 255))
                                 self.RenderText()
                                 self.BotsColor()
-                                t = temp[i][1]
                                 for x in self.allPath[temp[i][1]][0]:
                                     pygame.draw.rect(
                                         self.win, (0, 0, 0), temp[i][0], 0, 10
@@ -1038,8 +1051,8 @@ class GameAI:
                                     self.win.blit(
                                         overlaySurface,
                                         (
-                                            x[1] * self.sizeImage[0] + self.dx,
-                                            x[0] * self.sizeImage[1] + self.dy,
+                                            x[0][1] * self.sizeImage[0] + self.dx,
+                                            x[0][0] * self.sizeImage[1] + self.dy,
                                         ),
                                     )
                                     self.DrawMap()
@@ -1048,22 +1061,29 @@ class GameAI:
                                         pygame.time.delay(20)
                                         continue
                                     pygame.time.delay(5)
-                                for x in self.info[t][0]:
-                                    pygame.draw.rect(
-                                        self.win,
-                                        (255, 0, 0),
-                                        pygame.rect.Rect(
-                                            x[1] * self.sizeImage[0] + self.dx,
-                                            x[0] * self.sizeImage[1] + self.dy,
-                                            self.sizeImage[0],
-                                            self.sizeImage[1],
+                                for x in self.allPath[temp[i][1]][0]:
+                                    font = pygame.font.Font(None, 20)
+                                    textRender = font.render(str(x[1]), True, (0, 0, 0))
+                                    self.win.blit(
+                                        textRender,
+                                        (
+                                            x[0][1] * self.sizeImage[0]
+                                            + self.dx
+                                            + (
+                                                self.sizeImage[0]
+                                                - textRender.get_size()[0]
+                                            )
+                                            / 2,
+                                            x[0][0] * self.sizeImage[1]
+                                            + self.dy
+                                            + (
+                                                self.sizeImage[1]
+                                                - textRender.get_size()[1]
+                                            )
+                                            / 2,
                                         ),
-                                        0,
-                                        2,
                                     )
-                                    self.DrawMap()
                                     pygame.display.update()
-
             pygame.display.update()
 
     ##
