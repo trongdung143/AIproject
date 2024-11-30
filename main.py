@@ -10,7 +10,7 @@ class GameAI:
     def __init__(self):
         pygame.init()
         self.win = pygame.display.set_mode((1300, 820))
-        pygame.display.set_caption("22119054_LuuTrongDung, . . ._DaoNguyenPhuc")
+        pygame.display.set_caption("Game AI")
         self.fps = pygame.time.Clock()
         self.font = pygame.font.Font(None, 36)
 
@@ -338,7 +338,10 @@ class GameAI:
             self.allPath["hillclimbing"][0].append((current, count))
             count += 1
 
-        self.info["hillclimbing"][0] = path
+        if path[-1] == self.posEnd:
+            self.info["hillclimbing"][0] = path
+        else:
+            self.info["hillclimbing"][0] = [self.posStart]
 
     def Greedy(self):
         openList = PriorityQueue()
@@ -431,8 +434,10 @@ class GameAI:
                         neighbors.append((self.Heuristic(neighbor), neighbor))
 
             neighbors.sort()
+
             for heuristic, neighbor in neighbors[:3]:
                 openList.put((heuristic, neighbor))
+        self.info["beam"][0] = [self.posStart]
 
     ## Stactic Display
     def CreateMap(self):
@@ -481,6 +486,14 @@ class GameAI:
 
             elif event.type == pygame.MOUSEBUTTONDOWN and not self.isDragging:
                 self.isDragging = True
+                mousePos = pygame.mouse.get_pos()
+                for row in self.rectMap:
+                    for rect in row:
+                        if (
+                            rect.collidepoint(mousePos)
+                            and rect not in self.mouseThroughRect
+                        ):
+                            self.mouseThroughRect.append(rect)
 
             elif event.type == pygame.MOUSEBUTTONUP and self.isDragging:
                 self.isDragging = False
@@ -613,8 +626,21 @@ class GameAI:
             pygame.draw.rect(
                 self.win, (self.activeAllBots[1]), self.activeAllBots[0], 10, 4
             )
-            textRender = self.font.render("X" + str(self.speed[0]), True, (0, 0, 0))
+            textRender = self.font.render(
+                "X" + str(self.speed[0]) + "   " + "Speed", True, (0, 0, 0)
+            )
             self.win.blit(textRender, (950, 200))
+            pygame.draw.rect(
+                self.win, (0, 0, 0), pygame.rect.Rect(850 + self.dx, 65, 325, 65), 2, 10
+            )
+            textRender = self.font.render("22119054 LuuTrongDung", True, (0, 0, 0))
+            self.win.blit(textRender, (860 + self.dx, 70))
+            textRender = self.font.render(
+                "22110062 DaoNguyenPhuc",
+                True,
+                (0, 0, 0),
+            )
+            self.win.blit(textRender, (860 + self.dx, 100))
             self.speed[1].width = textRender.get_size()[0]
             self.speed[1].height = textRender.get_size()[1]
             dy = 0
@@ -637,7 +663,7 @@ class GameAI:
 
         for i, j in self.info.items():
             dy += 80
-            textRender = self.font.render(self.info[i][7], True, (0, 0, 0))
+            textRender = self.font.render(self.info[i][7], False, (0, 0, 0))
             self.win.blit(
                 textRender, (self.sizeImage[0] * self.sizeMap[0] + 150, dy + 148)
             )
@@ -660,11 +686,32 @@ class GameAI:
         pygame.draw.rect(self.win, (0, 0, 0), rect, 5, 10)
         font = pygame.font.Font(None, 28)
         for i in range(0, len(self.textCreateMap)):
-            textRender = font.render(self.textCreateMap[i], True, (0, 0, 0))
+            textRender = font.render(self.textCreateMap[i], False, (0, 0, 0))
             if i > 1:
                 self.win.blit(textRender, (910, i * 40 + 170))
             else:
                 self.win.blit(textRender, (910, i * 20 + 130))
+
+        textRender = font.render("Start Position", True, (0, 0, 0))
+        pygame.draw.rect(
+            self.win, (100, 149, 237), pygame.rect.Rect(900, 350 + 170, 20, 20), 0, 5
+        )
+        self.win.blit(textRender, (950, 350 + 170))
+        textRender = font.render("End Position", True, (0, 0, 0))
+        pygame.draw.rect(
+            self.win, (0, 105, 148), pygame.rect.Rect(900, 400 + 170, 20, 20), 0, 5
+        )
+        self.win.blit(textRender, (950, 400 + 170))
+        textRender = font.render("Wall", True, (0, 0, 0))
+        pygame.draw.rect(
+            self.win, (255, 0, 0), pygame.rect.Rect(900, 450 + 170, 20, 20), 0, 5
+        )
+        self.win.blit(textRender, (950, 450 + 170))
+        textRender = font.render("Select", True, (0, 0, 0))
+        pygame.draw.rect(
+            self.win, (0, 255, 0), pygame.rect.Rect(900, 500 + 170, 20, 20), 0, 5
+        )
+        self.win.blit(textRender, (950, 500 + 170))
 
     def CheckMouseMenu(self, mousePos, click):
         cursorHand = False
@@ -931,6 +978,14 @@ class GameAI:
             self.BotsColor()
 
         while True:
+            textRender = self.font.render("Click to see how it works", False, (0, 0, 0))
+            self.win.blit(
+                textRender,
+                (
+                    860 + self.dx,
+                    70,
+                ),
+            )
             for event in pygame.event.get():
                 mousePos = pygame.mouse.get_pos()
                 if event.type == pygame.QUIT:
@@ -1083,6 +1138,21 @@ class GameAI:
                                             / 2,
                                         ),
                                     )
+                                    pygame.display.update()
+                                for x in self.info[temp[i][1]][0]:
+                                    pygame.draw.rect(
+                                        self.win,
+                                        (255, 0, 0),
+                                        pygame.rect.Rect(
+                                            x[1] * self.sizeImage[0] + self.dx,
+                                            x[0] * self.sizeImage[1] + self.dy,
+                                            self.sizeImage[0],
+                                            self.sizeImage[1],
+                                        ),
+                                        0,
+                                        2,
+                                    )
+                                    self.DrawMap()
                                     pygame.display.update()
             pygame.display.update()
 
