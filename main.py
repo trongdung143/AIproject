@@ -28,8 +28,7 @@ class GameAI:
         self.textMenu = ["Start", "Create Map", "Exit"]
         self.textCreateMap = [
             "Press and drag the mouse to",
-            "select the region",
-            "After selected a region",
+            "            select the region",
             "Press 1 to set the start position",
             "Press 2 to set the end position",
             "Press 3 to create a wall",
@@ -187,6 +186,13 @@ class GameAI:
             pygame.transform.scale(
                 pygame.image.load("images/wall.png"),
                 (self.sizeImage[0], self.sizeImage[1] + 20),
+            ),
+            pygame.transform.rotate(
+                pygame.transform.scale(
+                    pygame.image.load("images/t.png"),
+                    (50, 25),
+                ),
+                -90,
             ),
         ]
 
@@ -630,10 +636,14 @@ class GameAI:
                 "X" + str(self.speed[0]) + "   " + "Speed", True, (0, 0, 0)
             )
             self.win.blit(textRender, (950, 200))
-            pygame.draw.rect(
-                self.win, (0, 0, 0), pygame.rect.Rect(850 + self.dx, 65, 325, 65), 2, 10
-            )
-            textRender = self.font.render("22119054 LuuTrongDung", True, (0, 0, 0))
+            # pygame.draw.rect(
+            #     self.win,
+            #     (0, 100, 0),
+            #     pygame.rect.Rect(850 + self.dx, 65, 325, 65),
+            #     2,
+            #     10,
+            # )
+            textRender = self.font.render("  22119054 LuuTrongDung", True, (0, 0, 0))
             self.win.blit(textRender, (860 + self.dx, 70))
             textRender = self.font.render(
                 "22110062 DaoNguyenPhuc",
@@ -685,12 +695,17 @@ class GameAI:
         )
         pygame.draw.rect(self.win, (0, 0, 0), rect, 5, 10)
         font = pygame.font.Font(None, 28)
+        pygame.draw.rect(
+            self.win, (0, 0, 0), pygame.rect.Rect(900, 120, 310, 320), 5, 5
+        )
         for i in range(0, len(self.textCreateMap)):
             textRender = font.render(self.textCreateMap[i], False, (0, 0, 0))
             if i > 1:
                 self.win.blit(textRender, (910, i * 40 + 170))
             else:
                 self.win.blit(textRender, (910, i * 20 + 130))
+            if i == 1:
+                self.win.blit(self.images[5], (1040, 180))
 
         textRender = font.render("Start Position", True, (0, 0, 0))
         pygame.draw.rect(
@@ -707,7 +722,7 @@ class GameAI:
             self.win, (255, 0, 0), pygame.rect.Rect(900, 450 + 170, 20, 20), 0, 5
         )
         self.win.blit(textRender, (950, 450 + 170))
-        textRender = font.render("Select", True, (0, 0, 0))
+        textRender = font.render("Selected", True, (0, 0, 0))
         pygame.draw.rect(
             self.win, (0, 255, 0), pygame.rect.Rect(900, 500 + 170, 20, 20), 0, 5
         )
@@ -912,6 +927,13 @@ class GameAI:
             (
                 self.posEnd[1] * self.sizeImage[0] + self.dx,
                 self.posEnd[0] * self.sizeImage[1] + self.dy,
+            ),
+        )
+        self.win.blit(
+            self.images[0],
+            (
+                self.posStart[1] * self.sizeImage[0] + self.dx,
+                self.posStart[0] * self.sizeImage[1] + self.dy,
             ),
         )
         for i in range(0, self.sizeMap[0]):
